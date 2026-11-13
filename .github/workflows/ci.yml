@@ -64,9 +64,29 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm pack --dry-run
       - run: npx --yes publint@0.3.25 --strict
       - run: npx --yes @arethetypeswrong/cli@0.18.5 --pack .
+      # The release workflow packs the same way: the README in the tarball, the one
+      # npmjs.com shows, has utm_source=npm. Only this checkout's copy changes.
+      - name: README for npm (utm_source=npm)
+        run: |
+          sed -i 's/utm_source=github/utm_source=npm/g' README.md
+          if grep -q 'utm_source=github' README.md; then
+            echo "::error::README.md still has utm_source=github."
+            exit 1
+          fi
+      - name: npm pack, and the links in the packed README
+        run: |
+          mkdir -p "$RUNNER_TEMP/pack"
+          npm pack --pack-destination "$RUNNER_TEMP/pack"
+          tarball="$(ls "$RUNNER_TEMP"/pack/*.tgz)"
+          tar -xOzf "$tarball" package/README.md > "$RUNNER_TEMP/packed-README.md"
+          echo "UTM links in the packed README:"
+          grep -o 'utm_source=[a-z]*&utm_medium=[a-z]*&utm_campaign=[a-z-]*' "$RUNNER_TEMP/packed-README.md" | sort | uniq -c
+          if grep -q 'utm_source=github' "$RUNNER_TEMP/packed-README.md"; then
+            echo "::error::The packed README still has utm_source=github."
+            exit 1
+          fi
       # The release workflow takes its notes from CHANGELOG.md: the current version needs a section.
       - run: node scripts/changelog-notes.mjs "$(node -p "require('./package.json').version")"
 
