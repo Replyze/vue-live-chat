@@ -410,7 +410,17 @@ useReplyzeEvent('message:received', (message) => {}); // message: ReplyzeMessage
 - `idle`: no `<ReplyzeChat>` with a token was mounted and the plugin wasn't installed with one. An empty token gives "No widget token" in the console; in Nuxt, check that `NUXT_PUBLIC_REPLYZE_TOKEN` is set where the app runs.
 - `ready`, but the launcher has the default colour and the console shows a 404 for `/api/w/<token>/config`: the token is wrong or was deleted. Copy it again from **Settings → Integrations → Install widget**.
 
-**What does my Content-Security-Policy need?** `script-src https://cdn.replyze.chat`, `connect-src https://client.replyze.chat wss://client.replyze.chat`, `style-src 'unsafe-inline'` (the widget's styles live in its shadow root), `img-src https: data:` and `media-src data:` (the new-message sound). With a nonce-based `script-src`, pass the nonce: `<ReplyzeChat :nonce="nonce" />`.
+**What does my Content-Security-Policy need?** These sources:
+
+```
+script-src  https://cdn.replyze.chat
+connect-src https://client.replyze.chat wss://client.replyze.chat
+style-src   'unsafe-inline'
+img-src     https: data: blob:
+media-src   https://client.replyze.chat data: blob:
+```
+
+`style-src 'unsafe-inline'` because the widget's styles live in its shadow root; `blob:` for the preview of a picture or a voice message the visitor is about to send; `media-src https://client.replyze.chat` to play voice messages. The [Content-Security-Policy table](https://github.com/Replyze/add-live-chat-to-website#content-security-policy) explains every source. With a nonce-based `script-src`, pass the nonce: `<ReplyzeChat :nonce="nonce" />`.
 
 **Can I change the token, or show two workspaces' chats?** One widget runs per page, and the token is read when it loads. A different token takes effect on the next full page load.
 
