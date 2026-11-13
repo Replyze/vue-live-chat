@@ -1,8 +1,9 @@
 /**
  * A stand-in for widget.js that behaves like widget/src/index.ts in the
- * Replyze widget: it reads window.ReplyzeConfig, emits `ready` in the
- * constructor (before anyone can listen), runs window.Replyze._queue and then
- * replaces window.Replyze with its API. The real bundle is tested in
+ * Replyze widget: it reads window.ReplyzeConfig, runs window.Replyze._queue,
+ * replaces window.Replyze with its API and then emits `ready` once, as
+ * widget.js does since 2026-11-13 (older builds emitted it in the constructor,
+ * before anyone could listen). The real bundle is tested in
  * test/widget.widget.test.ts.
  */
 import { resetForTests } from '../../src/core';
@@ -17,9 +18,7 @@ export class FakeWidget {
   visible = true;
   unread = 0;
 
-  constructor(readonly config: Record<string, unknown>) {
-    this.emit('ready');
-  }
+  constructor(readonly config: Record<string, unknown>) {}
 
   emit(event: string, ...args: unknown[]): void {
     this.listeners.get(event)?.forEach((cb) => cb(...args));
@@ -125,6 +124,7 @@ export function startFakeWidget(): FakeWidget | null {
     }
   }
   w.Replyze = api;
+  widget.emit('ready');
   return widget;
 }
 

@@ -421,6 +421,23 @@ describe('the user prop', () => {
     expect(identifies(widget).map(([m]) => m)).toEqual(['reset', 'identify']);
   });
 
+  it('resets before a user with neither id nor email: a name alone is not the same user', async () => {
+    const wrapper = renderChat({ strategy: 'afterInteractive', user: ana });
+    const widget = deliverScript()!;
+    await wrapper.setProps({ user: { name: 'Bo' } });
+    expect(identifies(widget).map(([m]) => m)).toEqual(['identify', 'reset', 'identify']);
+    cleanup();
+
+    // And across a page load.
+    newPage({ keepStorage: true });
+    renderChat({ strategy: 'afterInteractive', user: ana });
+    deliverScript();
+    cleanup();
+    newPage({ keepStorage: true });
+    renderChat({ strategy: 'afterInteractive', user: { name: 'Bo' } });
+    expect(identifies(deliverScript()!).map(([m]) => m)).toEqual(['reset', 'identify']);
+  });
+
   it('does not keep the email or the id in localStorage', () => {
     renderChat({ strategy: 'afterInteractive', user: ana });
     const stored = Object.keys(window.localStorage).map((k) => `${k}=${window.localStorage.getItem(k)}`).join(';');

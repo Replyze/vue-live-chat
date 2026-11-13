@@ -87,11 +87,19 @@ type ReplyzeWindow = Window & {
   cancelIdleCallback?: (id: number) => void;
 };
 
-/** The events window.Replyze.on() emits. `ready` is emitted before anyone can listen, so this module emits its own. */
+/**
+ * The events window.Replyze.on() emits, without `ready`: this module emits its
+ * own when it finds the widget running. widget.js from 2026-11-13 on fires
+ * `ready` once, after its queued commands ran and window.Replyze is set;
+ * older builds fired it before anyone could listen. Either way it is not
+ * passed on, so `ready` reaches a handler once.
+ */
 const WIDGET_EVENTS = ['open', 'close', 'unread', 'message:sent', 'message:received', 'identified', 'reset'] as const;
 /** Every event, `ready` included: what <ReplyzeChat> re-emits. */
 export const EVENTS: readonly ReplyzeEventName[] = ['ready', ...WIDGET_EVENTS];
 const MAX_PENDING = 100;
+/** Calls about who the user is: never the ones dropped when too many wait. */
+const IDENTITY_CALLS = new Set(['reset', 'identify', 'setUser']);
 const IDLE_TIMEOUT_MS = 3000;
 const USER_MARK_KEY = 'replyze-vue:user';
 const TAG = '[Replyze]';
@@ -231,12 +239,27 @@ function invoke(api: WidgetApi, method: string, args: unknown[]): void {
   }
 }
 
+/**
+ * A call that waits for the widget. When MAX_PENDING wait, the oldest call
+ * that isn't a sign-in or sign-out makes room: a lost reset() or identify()
+ * could leave the previous user's chat on screen. With only those waiting,
+ * the oldest identify goes (a later one says who it is now), else a reset
+ * (another one is still waiting).
+ */
+function enqueue(method: string, args: unknown[]): void {
+  if (pending.length >= MAX_PENDING) {
+    let drop = pending.findIndex(([m]) => !IDENTITY_CALLS.has(m));
+    if (drop === -1) drop = pending.findIndex(([m]) => m !== 'reset');
+    pending.splice(drop === -1 ? 0 : drop, 1);
+  }
+  pending.push([method, args]);
+}
+
 function call(method: string, args: unknown[]): void {
   if (!getWindow()) return;
   const api = runningWidget();
   if (!api) {
-    if (pending.length >= MAX_PENDING) pending.shift();
-    pending.push([method, args]);
+    enqueue(method, args);
     return;
   }
   if (api !== attached) {
@@ -567,7 +590,9 @@ export function syncUser(user: ReplyzeIdentity | null | undefined): void {
   if (key === lastUserKey) return;
   const subject = identitySubject(user);
   const mark = subject === null ? null : fingerprint(subject);
-  if (previous !== null && mark !== null && previous !== mark) methods.reset();
+  // Another user, or one with neither id nor email (a name alone can't be
+  // told apart from the previous user, so it starts fresh too).
+  if (previous !== null && previous !== mark) methods.reset();
   methods.identify(user);
   lastUserKey = key;
   if (mark !== null) writeUserMark(mark);

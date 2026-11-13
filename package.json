@@ -1,6 +1,6 @@
 {
   "name": "@replyze/vue",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Vue live chat widget for Vue 3 and Nuxt: the Replyze AI support chat as a component, plugin and composables, with identity verification",
   "type": "module",
   "main": "./dist/index.cjs",

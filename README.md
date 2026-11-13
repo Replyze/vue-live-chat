@@ -226,7 +226,7 @@ const { status, isOpen, unreadCount, open, close, toggle, identify, reset, on } 
 | `on(event, handler)` | Listen to an [event](#events). Returns a function that stops listening |
 | `off(event, handler)` | Stop listening |
 
-Calls made before the widget runs wait in order (up to 100) and run once it does. Objects you pass (a `reactive()` one too) are copied at the time of the call. On the server the methods do nothing.
+Calls made before the widget runs wait in order (up to 100) and run once it does. When more wait, the oldest goes first, but never a `reset()`, `identify()` or `setUser()`. Objects you pass (a `reactive()` one too) are copied at the time of the call. On the server the methods do nothing.
 
 ## Events
 
@@ -335,13 +335,15 @@ const user = computed(() => data.value?.user); // undefined while loading, null 
 </template>
 ```
 
+**Never serve these pages from a shared cache.** With `useFetch` during server rendering, the `user_hash` is in the page's HTML (the Nuxt payload). A page cached for everyone (a CDN, or `routeRules` with `swr`, `isr`, `cache` or `prerender`) would identify every visitor as the user it was rendered for, and they would see that user's chats. Render these pages per request, or fetch the user with `server: false`.
+
 The `user` prop takes three kinds of value:
 
 | `user` | What happens |
 | --- | --- |
 | `undefined` (not passed) | Nothing. Use it while your auth is still loading |
 | `null` | Nobody is signed in. If this browser identified a user through the prop before, even on an earlier page load, the chat calls `reset()`, so the next person on a shared computer starts fresh |
-| `{ user_id, email, name, user_hash }` | `identify()`, once per page load and again when a field changes. If another user was identified in this browser before, `reset()` comes first |
+| `{ user_id, email, name, user_hash }` | `identify()`, once per page load and again when a field changes. If another user was identified in this browser before, `reset()` comes first. So it does for a user with a `name` but neither `user_id` nor `email`, who can't be told apart from the previous one |
 
 In a Vue app without Nuxt, fetch the same object from your backend. Or call `identify({ user_id, email, name, user_hash })` after sign-in and `reset()` after sign-out yourself.
 
@@ -382,7 +384,7 @@ When the prop changes, the package calls `setTracking()`. Turning it off also re
 - **Unmounting doesn't remove the chat.** It stops the component's listeners; the widget has no "destroy" in its public API and is meant to live as long as the page, so it stays. To take it off some pages, see the FAQ.
 - **A snippet already on the page.** If `widget.js` is already there (a `<script>` snippet, a tag manager), the package uses that widget instead of loading a second one, and applies `language` and `tracking` with `setLanguage()` and `setTracking()`. `useReplyze()` follows such a widget even without `<ReplyzeChat>`. A widget that was already open when the package found it reads as closed until its next `open` or `close`.
 - **Calls before it runs.** Method calls wait in the package and run in order once the widget is running, after the package has subscribed to its events, so an early `open()` still shows in `isOpen`.
-- **`ready`.** The widget emits its own `ready` event while it starts, before any listener can exist, so this package emits `ready` itself when `window.Replyze` is running.
+- **`ready`.** This package emits `ready` itself, once, when it finds `window.Replyze` running, and doesn't pass on the widget's own. Since 2026-11-13 `widget.js` fires its `ready` after the queued commands ran and `window.Replyze` exists; older builds fired it before any listener could exist.
 - **Server rendering.** Nothing touches `window` during setup or render, and nothing is kept between requests: on the server the methods and `on()` do nothing.
 - **The `user` prop** keeps a short fingerprint of who it identified in `localStorage` (`replyze-vue:user`), not their id or email, so that after a sign-out with a full page load it can still call `reset()`.
 - **Size.** The package adds about 4 KB gzipped (9.4 KB minified) to your JavaScript. `widget.js` is a separate file of about 113 KB compressed (476 KB uncompressed) from Replyze's CDN, cached by the browser for 4 hours. The widget draws everything inside one shadow root, over the page.
@@ -445,7 +447,7 @@ npm run test:types   # the built .d.ts files compiled as an app sees them (after
 
 CI runs the unit tests and the type test on Vue 3.3 and 3.5, the real-widget tests, the package checks (`npm pack --dry-run`, [publint](https://publint.dev), [Are the Types Wrong](https://arethetypeswrong.github.io)) and builds both examples. Changes are listed in [CHANGELOG.md](CHANGELOG.md); how a version is released is in [RELEASING.md](RELEASING.md).
 
-**What we ran (November 2026):** the unit tests (70) and the real-widget tests (5) on Vue 3.5 and Vue 3.3; the built type declarations against Vue 3.3, 3.4 and 3.5 with `skipLibCheck` off; `nuxt build` of the example on Nuxt 4.6 and on Nuxt 3.21; a Vite 7 build of the Vite example; and in Chromium, with the production `widget.js` from `cdn.replyze.chat` and the Replyze API answered by the test (nothing reached production): the Nuxt example as a production build and in `nuxt dev` (no hydration warnings, no console errors), with a call queued before the widget ran, open, close, toggle, hide, show, `setLanguage()`, the demo sign-in (the `user_hash` from the server route reached `identify`), `pushEvent()` and sign-out (`reset`); the Nuxt client-plugin variant; and the Vite example with the plugin.
+**What we ran (November 2026):** the unit tests (70) and the real-widget tests (5) on Vue 3.5 and Vue 3.3; the built type declarations against Vue 3.3, 3.4 and 3.5 with `skipLibCheck` off; `nuxt build` of the example on Nuxt 4.6 and on Nuxt 3.21; a Vite 7 build of the Vite example; and in Chromium, with the production `widget.js` from `cdn.replyze.chat` and the Replyze API answered by the test (nothing reached production): the Nuxt example as a production build and in `nuxt dev` (no hydration warnings, no console errors), with a call queued before the widget ran, open, close, toggle, hide, show, `setLanguage()`, the demo sign-in (the `user_hash` from the server route reached `identify`), `pushEvent()` and sign-out (`reset`); the Nuxt client-plugin variant; and the Vite example with the plugin. For 0.1.1 (13 November 2026): the unit tests (73) and the real-widget tests (5) against the `widget.js` released that day, which fires `ready` after its queue.
 
 ## More from Replyze
 
