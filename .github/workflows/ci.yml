@@ -86,6 +86,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      # The package's build tools: packing it for the example runs its build.
+      - run: npm ci
       # Installs this package from ../.. as a packed copy (examples/*/.npmrc), which builds it.
       - run: npm install --no-audit --no-fund
         working-directory: examples/${{ matrix.example }}
