@@ -147,6 +147,8 @@ const config = useRuntimeConfig();
 NUXT_PUBLIC_REPLYZE_TOKEN=wgt_YOUR_TOKEN
 ```
 
+`nuxt dev` reads `.env`; the built server (`node .output/server/index.mjs`) does not, so in production set `NUXT_PUBLIC_REPLYZE_TOKEN` in your host's environment. Without it the token is empty and the console says `[Replyze] No widget token`.
+
 **Or a client plugin**, `plugins/replyze.client.ts` (`app/plugins/` in Nuxt 4), instead of the component:
 
 ```ts
