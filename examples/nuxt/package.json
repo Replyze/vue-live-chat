@@ -1,0 +1,16 @@
+{
+  "name": "replyze-vue-nuxt-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@replyze/vue": "file:../..",
+    "nuxt": "^4.6.4",
+    "vue": "^3.5.0"
+  }
+}

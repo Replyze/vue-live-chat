@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.tgz
+.DS_Store
+examples/*/node_modules/
+examples/*/.nuxt/
+examples/*/.output/
+examples/*/.data/
+examples/*/dist/
+examples/*/.env
+examples/*/.env.local
+examples/*/package-lock.json
+*.tsbuildinfo

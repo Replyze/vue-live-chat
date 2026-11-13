@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Vue ${{ matrix.vue }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest Vue the package supports (peer ^3.3.0) and the current one.
+        vue: ['3.3', '3.5']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - if: matrix.vue == '3.3'
+        run: npm install --no-save --ignore-scripts vue@3.3.13 @vue/server-renderer@3.3.13 @vue/test-utils@2.4.6
+      - run: node -p "'vue ' + require('vue/package.json').version"
+      - if: matrix.vue == '3.5'
+        run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # The built .d.ts files as an app on this Vue version sees them (skipLibCheck off).
+      - run: npm run test:types
+
+  widget:
+    # The package against the real widget.js from cdn.replyze.chat (only the Replyze API is faked).
+    name: Real widget.js
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:widget
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm pack --dry-run
+      - run: npx --yes publint@0.3.25 --strict
+      - run: npx --yes @arethetypeswrong/cli@0.18.5 --pack .
+      # The release workflow takes its notes from CHANGELOG.md: the current version needs a section.
+      - run: node scripts/changelog-notes.mjs "$(node -p "require('./package.json').version")"
+
+  examples:
+    name: Example ${{ matrix.example }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [nuxt, vite]
+    env:
+      NUXT_PUBLIC_REPLYZE_TOKEN: wgt_ci
+      VITE_REPLYZE_TOKEN: wgt_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Installs this package from ../.. as a packed copy (examples/*/.npmrc), which builds it.
+      - run: npm install --no-audit --no-fund
+        working-directory: examples/${{ matrix.example }}
+      - run: npm run build
+        working-directory: examples/${{ matrix.example }}

@@ -1,0 +1,108 @@
+name: Release
+
+# Push a tag vX.Y.Z (the version in package.json) to test, build, publish to
+# npm and create the GitHub release with the notes from CHANGELOG.md.
+# Publishing is skipped until npm is set up: see RELEASING.md.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Test, publish, release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # the GitHub release
+      id-token: write # npm provenance and trusted publishing
+    env:
+      HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Check the tag against package.json
+        id: version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::The tag $GITHUB_REF_NAME does not match the version in package.json ($version)."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          case "$version" in
+            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Release notes from CHANGELOG.md
+        run: node scripts/changelog-notes.mjs "${{ steps.version.outputs.version }}" --release > "$RUNNER_TEMP/notes.md"
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:widget
+      - run: npm run build
+      - run: npx --yes publint@0.3.25 --strict
+      - run: npx --yes @arethetypeswrong/cli@0.18.5 --pack .
+
+      - name: Pack
+        id: pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/pack"
+          npm pack --pack-destination "$RUNNER_TEMP/pack"
+          echo "tarball=$(ls "$RUNNER_TEMP"/pack/*.tgz)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to npm
+        if: env.HAS_NPM_TOKEN == 'true' || vars.NPM_TRUSTED_PUBLISHING == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          # Trusted publishing (OIDC) needs npm 11.5.1 or newer.
+          npm install -g npm@^11.5.1
+          name="$(node -p "require('./package.json').name")"
+          if npm view "$name@$VERSION" version >/dev/null 2>&1; then
+            echo "::notice::$name@$VERSION is already on npm."
+            exit 0
+          fi
+          dist_tag=latest
+          if [ "$PRERELEASE" = "true" ]; then dist_tag=next; fi
+          npm publish "$TARBALL" --provenance --access public --tag "$dist_tag"
+
+      - name: npm publishing is not set up
+        if: env.HAS_NPM_TOKEN != 'true' && vars.NPM_TRUSTED_PUBLISHING != 'true'
+        run: echo "::notice::Not published to npm. Set the NPM_TOKEN secret or the NPM_TRUSTED_PUBLISHING variable (see RELEASING.md)."
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "::notice::The release $GITHUB_REF_NAME already exists."
+            exit 0
+          fi
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" "$TARBALL" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            "${flags[@]}"
