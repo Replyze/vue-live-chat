@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://replyze.chat/?utm_source=github&utm_medium=vue-live-chat">
+  <a href="https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=vue-live-chat">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Replyze/.github/main/assets/logo-on-dark.png">
       <img src="https://raw.githubusercontent.com/Replyze/.github/main/assets/logo-on-light.png" alt="Replyze" height="48">
@@ -9,15 +9,15 @@
 
 # Vue live chat widget: AI support chat for Vue 3 and Nuxt
 
-`@replyze/vue` puts the [Replyze](https://replyze.chat/?utm_source=github&utm_medium=vue-live-chat) live chat widget in a Vue 3 or Nuxt 3/4 app: a floating launcher, an AI chatbot that answers from your knowledge base and hands over to your team, and live chat with your team. Add one `<ReplyzeChat>` component or `app.use(Replyze, { token })`. The `useReplyze()` composable lets your own buttons open the chat and show the unread count, the widget's events are typed Vue events, and identity verification for signed-in users comes with a server helper. It is safe to render on the server, and server-rendered pages hydrate without a mismatch.
+`@replyze/vue` puts the [Replyze](https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=vue-live-chat) live chat widget in a Vue 3 or Nuxt 3/4 app: a floating launcher, an AI chatbot that answers from your knowledge base and hands over to your team, and live chat with your team. Add one `<ReplyzeChat>` component or `app.use(Replyze, { token })`. The `useReplyze()` composable lets your own buttons open the chat and show the unread count, the widget's events are typed Vue events, and identity verification for signed-in users comes with a server helper. It is safe to render on the server, and server-rendered pages hydrate without a mismatch.
 
-**[Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=vue-live-chat&utm_content=cta-top)** · [Live demo](https://replyze.chat/?utm_source=github&utm_medium=vue-live-chat&utm_content=live-demo) · [Docs](https://github.com/Replyze/replyze)
+**[Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=referral&utm_campaign=vue-live-chat&utm_content=cta-top)** · [Live demo](https://replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=vue-live-chat&utm_content=live-demo) · [Docs](https://github.com/Replyze/replyze)
 
 Replyze brings web chat, email, WhatsApp and Telegram into one inbox for your team (Messenger and Instagram are in beta). This package adds the web chat to a Vue app. The live demo is replyze.chat itself: the chat bubble in the bottom-right corner is the same widget.
 
 ## Quickstart
 
-1. **Get your widget token.** [Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=vue-live-chat&utm_content=quickstart), then copy the token (`wgt_...`) from **Settings → Integrations → Install widget**.
+1. **Get your widget token.** [Create a free account](https://client.replyze.chat/register?utm_source=github&utm_medium=referral&utm_campaign=vue-live-chat&utm_content=quickstart), then copy the token (`wgt_...`) from **Settings → Integrations → Install widget**.
 2. **Install the package** from GitHub:
    ```sh
    npm install github:Replyze/vue-live-chat
@@ -56,7 +56,7 @@ After the first npm release (not yet), the registry install will be:
 npm install @replyze/vue
 ```
 
-Requirements: Vue 3.3 or newer (peer dependency). Nuxt 3 or 4. The identity helper in `@replyze/vue/server` needs Node 20 or newer (or another runtime with Web Crypto). You also need a Replyze account ([sign up](https://client.replyze.chat/register?utm_source=github&utm_medium=vue-live-chat&utm_content=install)).
+Requirements: Vue 3.3 or newer (peer dependency). Nuxt 3 or 4. The identity helper in `@replyze/vue/server` needs Node 20 or newer (or another runtime with Web Crypto). You also need a Replyze account ([sign up](https://client.replyze.chat/register?utm_source=github&utm_medium=referral&utm_campaign=vue-live-chat&utm_content=install)).
 
 ## Vue 3 and Vite
 
@@ -163,7 +163,7 @@ A full Nuxt 4 app is in [`examples/nuxt`](examples/nuxt): the chat in `app.vue`,
 
 ## Your widget token and allowed domains
 
-- **Token.** The widget token (`wgt_...`) is in the [dashboard](https://client.replyze.chat/?utm_source=github&utm_medium=vue-live-chat) under **Settings → Integrations → Install widget**. It is not a secret: it is in your page for anyone to see and only lets the chat talk to your workspace. API keys (`rpz_live_...`) are secrets; the package refuses to load with one and says so in the console.
+- **Token.** The widget token (`wgt_...`) is in the [dashboard](https://client.replyze.chat/?utm_source=github&utm_medium=referral&utm_campaign=vue-live-chat) under **Settings → Integrations → Install widget**. It is not a secret: it is in your page for anyone to see and only lets the chat talk to your workspace. API keys (`rpz_live_...`) are secrets; the package refuses to load with one and says so in the console.
 - **Allowed domains.** **Settings → Chat Widget** has the list of sites that may show the widget. An empty list allows every site. With entries, the host must match: `example.com` doesn't cover `www.example.com`; `*.example.com` covers both. While you develop, add `localhost`. On a domain that isn't allowed, the console says `[Replyze] Widget blocked: this domain (...) is not in the widget's allowed-domains list`.
 
 ## Options
